@@ -11,6 +11,13 @@ import cloud.mallne.editor.model.TranslationEntry
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessTerminatedListener
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
+import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.ToolbarDecorator
@@ -58,6 +65,9 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
             })
             .addExtraAction(object : AnAction(AllIcons.Actions.MenuSaveall) {
                 override fun actionPerformed(e: AnActionEvent) { saveNow() }
+            })
+            .addExtraAction(object : AnAction("Generate Accessors", "Run generateResourceAccessorsForCommonMain", null) {
+                override fun actionPerformed(e: AnActionEvent) { generateAccessors() }
             })
 
         toolbar = decorator.createPanel()
@@ -256,6 +266,18 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
         val root = currentRoot ?: return
         StringsXmlWriter.save(root, tableModel.entries, pendingSaveLocale)
         pendingSaveLocale = null
+    }
+
+    fun generateAccessors() {
+        val root = currentRoot ?: return
+        val module = ModuleUtilCore.findModuleForFile(root.root, project) ?: return
+        val projectPath = ExternalSystemApiUtil.getExternalProjectPath(module) ?: return
+        val gradlew = java.io.File(projectPath, if (SystemInfo.isWindows) "gradlew.bat" else "gradlew")
+        val command = GeneralCommandLine(gradlew.absolutePath, "generateResourceAccessorsForCommonMain")
+            .withWorkDirectory(projectPath)
+        val handler = OSProcessHandler(command)
+        ProcessTerminatedListener.attach(handler, project)
+        handler.startNotify()
     }
 
     private fun addKey() {
