@@ -1,0 +1,19 @@
+<idea-plugin>
+    <id>cloud.mallne.compose-resource-editor</id>
+    <name>Compose Resource Editor</name>
+    <vendor>mallne</vendor>
+    <description><![CDATA[
+        Edit Compose Multiplatform resource XML files in a translation table view.
+        Supports strings, string-arrays, and plurals across all locales.
+    ]]></description>
+    <depends>org.jetbrains.kotlin</depends>
+    <depends>com.intellij.modules.xml</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Resource Editor" factoryClass="cloud.mallne.editor.toolwindow.TranslationToolWindowFactory"
+                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+        <editorNotificationProvider implementation="cloud.mallne.editor.ui.ResourceEditorNotificationProvider"/>
+    </extensions>
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <supportsKotlinPluginMode supportsK2="true"/>
+    </extensions>
+</idea-plugin>
