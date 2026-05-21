@@ -45,8 +45,11 @@ class ResourceTableModel(
         }
     }
 
-    override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean =
-        columnIndex == COL_CHECKBOX || (columnIndex != COL_KEY && columnIndex != COL_TYPE && columnIndex != COL_WARNING)
+    override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+        if (columnIndex == COL_CHECKBOX) return true
+        if (columnIndex == COL_KEY || columnIndex == COL_TYPE || columnIndex == COL_WARNING) return false
+        return entries[rowIndex].type == ResourceType.STRING
+    }
 
     override fun setValueAt(value: Any?, rowIndex: Int, columnIndex: Int) {
         val entry = entries[rowIndex]
