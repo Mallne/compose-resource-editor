@@ -55,11 +55,11 @@ object StringsXmlParser {
     }
 
     private fun parseTagValue(tag: XmlTag): ResourceValue = when (tag.name) {
-        "string" -> ResourceValue.Simple(tag.value.text.trim())
+        "string" -> ResourceValue.Simple(getUnescapedText(tag))
         "string-array" -> {
             val items = tag.subTags
                 .filter { it.name == "item" }
-                .map { it.value.text.trim() }
+                .map { getUnescapedText(it) }
             ResourceValue.Array(items)
         }
         "plurals" -> {
@@ -67,10 +67,16 @@ object StringsXmlParser {
                 .filter { it.name == "item" }
                 .mapNotNull { item ->
                     val quantity = item.getAttributeValue("quantity") ?: return@mapNotNull null
-                    PluralItem(quantity, item.value.text.trim())
+                    PluralItem(quantity, getUnescapedText(item))
                 }
             ResourceValue.Plurals(items)
         }
         else -> ResourceValue.Simple("")
+    }
+
+    private fun getUnescapedText(tag: XmlTag): String {
+        val texts = tag.value.textElements
+        if (texts.isEmpty()) return ""
+        return texts.joinToString("") { it.value }
     }
 }

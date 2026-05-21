@@ -67,6 +67,7 @@ object StringsXmlWriter {
             root.addContent(element)
         }
 
-        return JDOMUtil.write(root, System.lineSeparator()).trimEnd()
+        val xml = JDOMUtil.write(root, System.lineSeparator()).trimEnd()
+        return xml.replace(Regex("(?<!&amp;)&quot;"), "\"")
     }
 }
