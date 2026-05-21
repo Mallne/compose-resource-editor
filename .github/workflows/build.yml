@@ -20,7 +20,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: chmod +x gradlew && ./gradlew build
+      - run: chmod +x gradlew && ./gradlew buildPlugin
         env:
           CI: true
 
