@@ -11,13 +11,9 @@ import cloud.mallne.editor.model.TranslationEntry
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.OSProcessHandler
-import com.intellij.execution.process.ProcessTerminatedListener
-import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
-import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.externalSystem.model.ProjectSystemId
+import com.intellij.openapi.externalSystem.model.execution.ExternalSystemTaskExecutionSettings
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
-import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.ui.ToolbarDecorator
@@ -66,7 +62,7 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
             .addExtraAction(object : AnAction(AllIcons.Actions.MenuSaveall) {
                 override fun actionPerformed(e: AnActionEvent) { saveNow() }
             })
-            .addExtraAction(object : AnAction("Generate Accessors", "Run generateResourceAccessorsForCommonMain", null) {
+            .addExtraAction(object : AnAction("Generate Accessors", "Run generateResourceAccessorsForCommonMain", AllIcons.Actions.Compile) {
                 override fun actionPerformed(e: AnActionEvent) { generateAccessors() }
             })
 
@@ -270,14 +266,31 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
 
     fun generateAccessors() {
         val root = currentRoot ?: return
-        val module = ModuleUtilCore.findModuleForFile(root.root, project) ?: return
-        val projectPath = ExternalSystemApiUtil.getExternalProjectPath(module) ?: return
-        val gradlew = java.io.File(projectPath, if (SystemInfo.isWindows) "gradlew.bat" else "gradlew")
-        val command = GeneralCommandLine(gradlew.absolutePath, "generateResourceAccessorsForCommonMain")
-            .withWorkDirectory(projectPath)
-        val handler = OSProcessHandler(command)
-        ProcessTerminatedListener.attach(handler, project)
-        handler.startNotify()
+        var settingsDir = root.root
+        while (settingsDir != null) {
+            if (settingsDir.findChild("settings.gradle.kts") != null || settingsDir.findChild("settings.gradle") != null) break
+            settingsDir = settingsDir.parent
+        }
+        val projectRootDir = settingsDir ?: return
+        var moduleDir = root.root
+        while (moduleDir != null && moduleDir != projectRootDir) {
+            if (moduleDir.findChild("build.gradle.kts") != null || moduleDir.findChild("build.gradle") != null) break
+            moduleDir = moduleDir.parent
+        }
+        val gradlePath = if (moduleDir != null && moduleDir != projectRootDir) {
+            val relative = moduleDir.path.removePrefix(projectRootDir.path).trimStart('/', '\\')
+            ":" + relative.replace('/', ':').replace('\\', ':')
+        } else {
+            ":"
+        }
+        val settings = ExternalSystemTaskExecutionSettings().apply {
+            externalSystemIdString = "GRADLE"
+            taskNames = mutableListOf("${gradlePath}:generateResourceAccessorsForCommonMain")
+            externalProjectPath = projectRootDir.path
+            vmOptions = ""
+            scriptParameters = ""
+        }
+        ExternalSystemUtil.runTask(settings, "Run", project, ProjectSystemId("GRADLE"))
     }
 
     private fun addKey() {

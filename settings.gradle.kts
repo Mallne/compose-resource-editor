@@ -4,7 +4,7 @@ rootProject.name = "compose-resource-editor"
 
 pluginManagement {
     plugins {
-        id("org.jetbrains.kotlin.jvm") version "2.2.20"
+        id("org.jetbrains.kotlin.jvm") version "2.4.0-RC"
         id("org.jetbrains.changelog") version "2.5.0"
     }
 }
