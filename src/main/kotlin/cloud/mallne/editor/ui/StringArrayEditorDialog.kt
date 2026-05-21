@@ -1,9 +1,11 @@
 package cloud.mallne.editor.ui
 
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
+import java.awt.FlowLayout
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
@@ -11,8 +13,9 @@ import javax.swing.table.AbstractTableModel
 
 class StringArrayEditorDialog(
     private val key: String,
-    private val initialItems: List<String>
-) : DialogWrapper(true) {
+    private val initialItems: List<String>,
+    project: com.intellij.openapi.project.Project? = null
+) : DialogWrapper(project, true) {
 
     private var items = initialItems.toMutableList()
     private val tableModel = object : AbstractTableModel() {
@@ -39,12 +42,20 @@ class StringArrayEditorDialog(
         table.setShowGrid(false)
         table.columnModel.getColumn(0).preferredWidth = 400
 
-        val decorator = ToolbarDecorator.createDecorator(table)
-            .setAddAction { addItem() }
-            .setRemoveAction { removeItem() }
+        val addButton = JButton("+").also {
+            it.addActionListener { addItem() }
+        }
+        val removeButton = JButton("-").also {
+            it.addActionListener { removeItem() }
+        }
+        val toolbar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).also {
+            it.add(addButton)
+            it.add(removeButton)
+        }
 
         val panel = JPanel(BorderLayout())
-        panel.add(decorator.createPanel(), BorderLayout.CENTER)
+        panel.add(toolbar, BorderLayout.NORTH)
+        panel.add(JBScrollPane(table), BorderLayout.CENTER)
         return panel
     }
 

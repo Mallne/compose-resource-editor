@@ -2,9 +2,11 @@ package cloud.mallne.editor.ui
 
 import cloud.mallne.editor.model.PluralItem
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
+import java.awt.FlowLayout
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
@@ -12,8 +14,9 @@ import javax.swing.table.AbstractTableModel
 
 class PluralsEditorDialog(
     private val key: String,
-    private val initialItems: List<PluralItem>
-) : DialogWrapper(true) {
+    private val initialItems: List<PluralItem>,
+    project: com.intellij.openapi.project.Project? = null
+) : DialogWrapper(project, true) {
 
     private var items = initialItems.toMutableList()
     private val tableModel = object : AbstractTableModel() {
@@ -43,12 +46,20 @@ class PluralsEditorDialog(
         table.columnModel.getColumn(0).preferredWidth = 100
         table.columnModel.getColumn(1).preferredWidth = 300
 
-        val decorator = ToolbarDecorator.createDecorator(table)
-            .setAddAction { addItem() }
-            .setRemoveAction { removeItem() }
+        val addButton = JButton("+").also {
+            it.addActionListener { addItem() }
+        }
+        val removeButton = JButton("-").also {
+            it.addActionListener { removeItem() }
+        }
+        val toolbar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).also {
+            it.add(addButton)
+            it.add(removeButton)
+        }
 
         val panel = JPanel(BorderLayout())
-        panel.add(decorator.createPanel(), BorderLayout.CENTER)
+        panel.add(toolbar, BorderLayout.NORTH)
+        panel.add(JBScrollPane(table), BorderLayout.CENTER)
         return panel
     }
 

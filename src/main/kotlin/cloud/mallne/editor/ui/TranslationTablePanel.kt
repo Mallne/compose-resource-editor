@@ -11,11 +11,14 @@ import cloud.mallne.editor.model.TranslationEntry
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.model.execution.ExternalSystemTaskExecutionSettings
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
@@ -98,6 +101,8 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
     }
 
     fun refresh() {
+        saveNow()
+
         val roots = ComposeResourcesScanner.scan(project)
         val root = roots.firstOrNull()
         currentRoot = root
@@ -211,7 +216,7 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
                 val items = (currentValue as? ResourceValue.Array)?.items
                     ?: (entry.baseValue as? ResourceValue.Array)?.items
                     ?: emptyList()
-                val dialog = StringArrayEditorDialog(entry.key, items)
+                val dialog = StringArrayEditorDialog(entry.key, items, project)
                 if (dialog.showAndGet()) {
                     val newValue = ResourceValue.Array(dialog.getItems())
                     updateEntryValue(entry.key, newValue, locale, isBase)
@@ -221,13 +226,12 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
                 val items = (currentValue as? ResourceValue.Plurals)?.items
                     ?: (entry.baseValue as? ResourceValue.Plurals)?.items
                     ?: emptyList()
-                val dialog = PluralsEditorDialog(entry.key, items)
+                val dialog = PluralsEditorDialog(entry.key, items, project)
                 if (dialog.showAndGet()) {
                     val newValue = ResourceValue.Plurals(dialog.getItems())
                     updateEntryValue(entry.key, newValue, locale, isBase)
                 }
             }
-            else -> {}
         }
     }
 
@@ -251,7 +255,11 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
         pendingSaveLocale = locale
         debounceTimer?.stop()
         debounceTimer = Timer(800) {
-            saveNow()
+            ApplicationManager.getApplication().invokeLater(
+                { saveNow() },
+                ModalityState.nonModal(),
+                project.disposed
+            )
         }.apply {
             isRepeats = false
             start()
@@ -266,13 +274,13 @@ class TranslationTablePanel(private val project: Project) : SimpleToolWindowPane
 
     fun generateAccessors() {
         val root = currentRoot ?: return
-        var settingsDir = root.root
+        var settingsDir: VirtualFile? = root.root
         while (settingsDir != null) {
             if (settingsDir.findChild("settings.gradle.kts") != null || settingsDir.findChild("settings.gradle") != null) break
             settingsDir = settingsDir.parent
         }
         val projectRootDir = settingsDir ?: return
-        var moduleDir = root.root
+        var moduleDir: VirtualFile? = root.root
         while (moduleDir != null && moduleDir != projectRootDir) {
             if (moduleDir.findChild("build.gradle.kts") != null || moduleDir.findChild("build.gradle") != null) break
             moduleDir = moduleDir.parent
